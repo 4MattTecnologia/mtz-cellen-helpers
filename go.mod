@@ -1,4 +1,4 @@
-module mattzero.com.br/helpers
+module github.com/4MattTecnologia/mtz-cellen-helpers
 
 go 1.19
 
