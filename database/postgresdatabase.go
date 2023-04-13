@@ -2,11 +2,15 @@ package database
 
 import (
     "database/sql"
+    "context"
     "fmt"
     "log"
+    "net"
 
     "cloud.google.com/go/cloudsqlconn"
-    "cloud.google.com/go/cloudsqlconn/postgres/pgxv4"
+//    "cloud.google.com/go/cloudsqlconn/postgres/pgxv4"
+    "github.com/jackc/pgx/v4"
+    "github.com/jackc/pgx/v4/stdlib"
     _ "github.com/lib/pq"
 )
 
@@ -33,33 +37,34 @@ func (p *PostgreSQLDatabase) Timestamp() (string, error) {
 }
 
 // gcp connectors described in:
-// https://github.com/GoogleCloudPlatform/cloud-sql-go-connector#connecting-to-a-database
+// https://github.com/GoogleCloudPlatform/golang-samples/blob/a09ece5d45a42a15d79e6d7c5afba77b088942ac/cloudsql/postgres/database-sql/connect_connector_iam_authn.go#L31
 func (p *PostgreSQLDatabase) ConnectCloud(dbName string,
         dbHost string,
         dbUser string,
         dbPwd string,
         instanceName string,
         credentialsJSON []byte) error {
-    cleanup, err := pgxv4.RegisterDriver(
-        "cloudsql-postgres", cloudsqlconn.WithCredentialsJSON(credentialsJSON))
-//        "cloudsql-postgres", cloudsqlconn.WithCredentialsFile(
-//        "./serverless_function_source_code/credentials.json"))
-//        "../credentials.json"))
+    d, err := cloudsqlconn.NewDialer(
+        context.Background(),
+        cloudsqlconn.WithCredentialsJSON(credentialsJSON))
+    if err != nil {
+        return fmt.Errorf("cloudsqlconn.NewDialer: %v", err)
+    }
+
+    dsn := fmt.Sprintf("user=%s database=%s", dbUser, dbName)
+    config, err := pgx.ParseConfig(dsn)
     if err != nil {
         return err
     }
-    // call cleanup when you're done with the database connection
-    defer cleanup()
 
-    connstring := fmt.Sprintf("host=%v user=%v password=%v dbname=%v sslmode=disable",
-        instanceName,
-        dbUser,
-        dbPwd,
-        dbName)
-    db, err := sql.Open(
-        "cloudsql-postgres",
-        connstring,
-    )
+    config.DialFunc = func(ctx context.Context,
+                           network string,
+                           instance string) (
+                           net.Conn, error) {
+        return d.Dial(ctx, instanceName, cloudsqlconn.WithPrivateIP())
+    }
+    dbURI := stdlib.RegisterConnConfig(config)
+    db, err := sql.Open("pgx", dbURI)
     if err != nil {
         return err
     }
