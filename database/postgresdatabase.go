@@ -22,6 +22,7 @@ func (p *PostgreSQLDatabase) Timestamp() (string, error) {
     rows, err := p.DBConn.Query(
         "SELECT now()")
     defer rows.Close()
+    fmt.Println("selected now")
     if err != nil {
         log.Printf("Error executing query in Timestamp(): %v", err.Error())
         return "", err
@@ -41,7 +42,7 @@ func (p *PostgreSQLDatabase) Timestamp() (string, error) {
 func (p *PostgreSQLDatabase) ConnectCloud(dbName string,
         dbHost string,
         dbUser string,
-        dbPwd string,
+        dbPass string,
         instanceName string,
         credentialsJSON []byte) error {
     d, err := cloudsqlconn.NewDialer(
@@ -51,17 +52,22 @@ func (p *PostgreSQLDatabase) ConnectCloud(dbName string,
         return fmt.Errorf("cloudsqlconn.NewDialer: %v", err)
     }
 
-    dsn := fmt.Sprintf("user=%s database=%s", dbUser, dbName)
+    dsn := fmt.Sprintf("user=%s password=%s database=%s",
+                       dbUser, dbPass, dbName)
     config, err := pgx.ParseConfig(dsn)
     if err != nil {
         return err
+    }
+
+    opts := []cloudsqlconn.DialOption{
+//        cloudsqlconn.WithPrivateIP(),
     }
 
     config.DialFunc = func(ctx context.Context,
                            network string,
                            instance string) (
                            net.Conn, error) {
-        return d.Dial(ctx, instanceName, cloudsqlconn.WithPrivateIP())
+        return d.Dial(ctx, instanceName, opts...)
     }
     dbURI := stdlib.RegisterConnConfig(config)
     db, err := sql.Open("pgx", dbURI)
