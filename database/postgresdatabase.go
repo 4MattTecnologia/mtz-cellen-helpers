@@ -14,6 +14,12 @@ type PostgreSQLDatabase struct {
     DBConn *sql.DB
 }
 
+func (p *PostgreSQLDatabase) Close() {
+    if p.DBConn != nil {
+        p.DBConn.Close()
+    }
+}
+
 func (p *PostgreSQLDatabase) Timestamp() (string, error) {
     rows, err := p.DBConn.Query(
         "SELECT now()")
