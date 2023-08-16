@@ -8,6 +8,7 @@ import (
     "cloud.google.com/go/cloudsqlconn"
     "cloud.google.com/go/cloudsqlconn/postgres/pgxv4"
     _ "github.com/lib/pq"
+    "slices"
 )
 
 type PostgreSQLDatabase struct {
@@ -46,7 +47,10 @@ func (p *PostgreSQLDatabase) ConnectCloud(dbName string,
         dbPwd string,
         instanceName string,
         credentialsJSON []byte) error {
-    if _, exists := sql.Drivers()["cloudsql-postgres"]; !exists {
+    
+    exists := slices.Contains(sql.Drivers(), "cloudsql-postgres")
+
+    if !exists {
         cleanup, err := pgxv4.RegisterDriver(
             "cloudsql-postgres", cloudsqlconn.WithCredentialsJSON(credentialsJSON))
         if err != nil {
