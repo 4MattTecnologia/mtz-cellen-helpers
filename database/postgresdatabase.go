@@ -8,7 +8,6 @@ import (
     "cloud.google.com/go/cloudsqlconn"
     "cloud.google.com/go/cloudsqlconn/postgres/pgxv4"
     _ "github.com/lib/pq"
-    "slices"
 )
 
 type PostgreSQLDatabase struct {
