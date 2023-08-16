@@ -46,16 +46,15 @@ func (p *PostgreSQLDatabase) ConnectCloud(dbName string,
         dbPwd string,
         instanceName string,
         credentialsJSON []byte) error {
-    cleanup, err := pgxv4.RegisterDriver(
-        "cloudsql-postgres", cloudsqlconn.WithCredentialsJSON(credentialsJSON))
-//        "cloudsql-postgres", cloudsqlconn.WithCredentialsFile(
-//        "./serverless_function_source_code/credentials.json"))
-//        "../credentials.json"))
-    if err != nil {
-        return err
+    if _, exists := sql.Drivers()["cloudsql-postgres"]; !exists {
+        cleanup, err := pgxv4.RegisterDriver(
+            "cloudsql-postgres", cloudsqlconn.WithCredentialsJSON(credentialsJSON))
+        if err != nil {
+            return err
+        }
+        // call cleanup when you're done with the database connection
+        defer cleanup()
     }
-    // call cleanup when you're done with the database connection
-    defer cleanup()
 
     connstring := fmt.Sprintf("host=%v user=%v password=%v dbname=%v sslmode=disable",
         instanceName,
