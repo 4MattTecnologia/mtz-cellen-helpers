@@ -5,6 +5,7 @@ go 1.19
 require (
 	cloud.google.com/go/cloudsqlconn v1.4.2
 	github.com/lib/pq v1.10.9
+	golang.org/x/exp v0.0.0-20230811145659-89c5cff77bcb
 )
 
 require (
